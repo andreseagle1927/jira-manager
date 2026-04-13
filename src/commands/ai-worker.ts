@@ -21,14 +21,12 @@ export const processCmd = new Command()
           }
           
           const taskResult = await (globalThis as any).task({ 
-            command: '/web-content-harvester', 
-            description: 'web-content-harvester subagent ONLY - use websearch, webfetch, codesearch, newsmcp_get_news tools',
-            prompt: `Research using web-content-harvester subagent with tools: websearch, webfetch, codesearch, newsmcp_get_news.\n\nTopic: ${prompt}`,
+            prompt,
             subagent_type: 'web-content-harvester'
           });
           
           if (!taskResult || typeof taskResult !== 'string') {
-            throw new Error('Invalid response from web-content-harvester agent');
+            throw new Error('Invalid response from agent');
           }
           
           return taskResult;
