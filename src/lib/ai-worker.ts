@@ -28,7 +28,7 @@ export class AgentResearcher implements TicketResearcher {
       console.log(`[AgentResearcher] Calling web-content-harvester agent for: ${query.slice(0, 50)}...`);
       
       const result = await this.agent.invoke(
-        `You are a research specialist. Thoroughly research the following topic and provide comprehensive findings with detailed information, examples, and sources.\n\nTopic: ${query}\n\nProvide a detailed response with:` +
+        `You are a research specialist. Thoroughly research the following topic and provide comprehensive findings with detailed information, examples, and sources.\n\n${query}\n\nProvide a detailed response with:` +
         `\n- Summary of findings` +
         `\n- Detailed information` +
         `\n- Configuration examples if applicable` +
@@ -213,7 +213,10 @@ export async function processTickets(deps: AiWorkerDeps, options: { fromStatus?:
 
   for (const ticket of tickets) {
     const detail = await deps.jira.getIssue(ticket.key);
-    const query = detail.fields.summary + ' ' + extractTextFromDoc(detail.fields.description);
+    const description = extractTextFromDoc(detail.fields.description);
+    const query = description 
+      ? `${detail.fields.summary}\n\nDescription: ${description}`
+      : detail.fields.summary;
     
     const research = await deps.researcher.research(query);
     
