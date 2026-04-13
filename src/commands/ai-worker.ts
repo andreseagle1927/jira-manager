@@ -16,16 +16,14 @@ export const processCmd = new Command()
     if (opts.mode === 'agent' && hasTaskFunction) {
       const agentTool: ResearchAgentTool = {
         invoke: async (prompt: string): Promise<string> => {
-          console.log('[AI-Worker] 🔍 Invoking web-content-harvester agent...');
-          
           if (!(globalThis as any).task) {
             throw new Error('task function not available');
           }
           
           const taskResult = await (globalThis as any).task({ 
-            command: '', 
-            description: 'Research with web-content-harvester agent ONLY - use web search, web fetch, codesearch, news',
-            prompt,
+            command: '/web-content-harvester', 
+            description: 'web-content-harvester subagent ONLY - use websearch, webfetch, codesearch, newsmcp_get_news tools',
+            prompt: `Research using web-content-harvester subagent with tools: websearch, webfetch, codesearch, newsmcp_get_news.\n\nTopic: ${prompt}`,
             subagent_type: 'web-content-harvester'
           });
           
@@ -33,7 +31,6 @@ export const processCmd = new Command()
             throw new Error('Invalid response from web-content-harvester agent');
           }
           
-          console.log('[AI-Worker] ✅ web-content-harvester responded, length:', taskResult.length);
           return taskResult;
         }
       };
