@@ -25,10 +25,8 @@ export class AgentResearcher implements TicketResearcher {
 
   async research(query: string): Promise<ResearchResult> {
     try {
-      console.log(`[AgentResearcher] Calling web-content-harvester agent for: ${query.slice(0, 50)}...`);
-      
       const result = await this.agent.invoke(
-        `You are a research specialist. Thoroughly research the following topic and provide comprehensive findings with detailed information, examples, and sources.\n\n${query}\n\nProvide a detailed response with:` +
+        `You are a research specialist with access to web search, content fetching, code search, and news tools. Thoroughly research the following topic and provide comprehensive findings with detailed information, examples, and sources.\n\n${query}\n\nProvide a detailed response with:` +
         `\n- Summary of findings` +
         `\n- Detailed information` +
         `\n- Configuration examples if applicable` +
@@ -36,7 +34,7 @@ export class AgentResearcher implements TicketResearcher {
       );
       
       if (!result || result.length < 50) {
-        console.warn('[AgentResearcher] Agent returned empty or minimal result, using fallback');
+        console.warn('[AgentResearcher] ⚠️ web-content-harvester returned empty result, using fallback');
         return this.fallback.research(query);
       }
       
