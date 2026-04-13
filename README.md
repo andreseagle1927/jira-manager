@@ -170,7 +170,7 @@ jira user listUsers
 The AI Worker automates processing tickets that need research:
 
 ```
-[Ticket in "To AI"] → [Research] → [Add Comment] → [Transition] → [Notify]
+[Ticket in "To AI"] → [Research] → [Add Comment] → [Transition] → [Final Notification]
 ```
 
 ### How It Works
@@ -178,9 +178,26 @@ The AI Worker automates processing tickets that need research:
 1. **Find Tickets**: Search for tickets in "To AI" status
 2. **Get Details**: Fetch ticket summary and description
 3. **Research**: Use AI agent to research the topic
-4. **Add Comment**: Post research results as a comment
+4. **Add Comment**: Post research results as a comment (with emojis for formatting)
 5. **Transition**: Move ticket to "To Human" status
-6. **Notify**: Send Discord notification
+6. **Notify**: Send **per-ticket** Discord notification when fully processed (comment added + status changed)
+
+### Discord Notification
+
+After each ticket is fully processed, a notification is sent with:
+- **Ticket key**: The processed ticket ID
+- **Summary**: Ticket title
+- **Link**: Direct Jira link (enables Discord card preview)
+
+Example notification:
+```markdown
+## ✅ Ticket Processed
+
+**Ticket:** COR-37
+**Summary:** OpenAI
+
+[🔗 View in Jira](https://yourcompany.atlassian.net/browse/COR-37)
+```
 
 ### Usage
 
@@ -228,7 +245,7 @@ npm run test:watch
 
 ### Test Coverage
 
-The test suite (`tests/ai-worker.test.ts`) covers **15 tests** across these areas:
+The test suite (`tests/ai-worker.test.ts`) covers **17 tests** across these areas:
 
 #### 1. Text Extraction (`extractTextFromDoc`)
 - Extracts text from Atlassian Document Format (ADF)

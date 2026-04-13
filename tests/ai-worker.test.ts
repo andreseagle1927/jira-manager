@@ -149,6 +149,8 @@ describe('processTickets', () => {
       send: vi.fn().mockResolvedValue(undefined),
     };
 
+    vi.stubEnv('JIRA_DOMAIN', 'test.atlassian.net');
+
     const result = await processTickets(
       { jira: mockJira, researcher: mockResearcher, notifier: mockNotifier },
       { fromStatus: 'To AI', toStatus: 'To Human' }
@@ -158,6 +160,8 @@ describe('processTickets', () => {
     expect(result.tickets).toHaveLength(1);
     expect(result.tickets[0].key).toBe('TEST-1');
     expect(result.tickets[0].success).toBe(true);
+    // Notification sent once per ticket after it's fully processed
+    expect(mockNotifier.send).toHaveBeenCalledTimes(1);
   });
 
   it('handles empty ticket queue', async () => {
@@ -212,7 +216,54 @@ describe('processTickets', () => {
     expect(mockResearcher.research).toHaveBeenCalled();
     expect(mockJira.addComment).toHaveBeenCalled();
     expect(mockJira.transition).toHaveBeenCalledWith('TEST-1', 'To Human');
-    expect(mockNotifier.send).toHaveBeenCalled();
+    // Single notification at the end
+    expect(mockNotifier.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends notification per ticket after processing each', async () => {
+    vi.stubEnv('JIRA_DOMAIN', 'test.atlassian.net');
+    
+    const mockJira = {
+      searchTickets: vi.fn().mockResolvedValue([
+        { key: 'COR-1', fields: { summary: 'Issue 1' } },
+        { key: 'COR-2', fields: { summary: 'Issue 2' } },
+      ]),
+      getIssue: vi.fn().mockResolvedValue({
+        key: 'COR-1',
+        fields: { summary: 'Issue 1', description: null },
+      }),
+      addComment: vi.fn().mockResolvedValue(undefined),
+      transition: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const mockNotifier = { send: vi.fn().mockResolvedValue(undefined) };
+
+    await processTickets(
+      { jira: mockJira, researcher: { research: vi.fn().mockResolvedValue({ summary: '', details: '', sources: [] }) }, notifier: mockNotifier }
+    );
+
+    // One notification per ticket
+    expect(mockNotifier.send).toHaveBeenCalledTimes(2);
+    
+    const firstNotification = mockNotifier.send.mock.calls[0][0];
+    expect(firstNotification).toContain('Ticket Processed');
+    expect(firstNotification).toContain('COR-1');
+    expect(firstNotification).toContain('https://test.atlassian.net/browse/COR-1');
+  });
+
+  it('does not send notification when no tickets processed', async () => {
+    const mockJira = {
+      searchTickets: vi.fn().mockResolvedValue([]),
+    };
+
+    const mockNotifier = { send: vi.fn().mockResolvedValue(undefined) };
+
+    const result = await processTickets(
+      { jira: mockJira, researcher: { research: vi.fn() }, notifier: mockNotifier }
+    );
+
+    expect(result.processed).toBe(0);
+    expect(mockNotifier.send).not.toHaveBeenCalled();
   });
 });
 

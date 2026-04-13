@@ -180,6 +180,7 @@ export class DiscordNotifier implements Notifier {
 export async function processTickets(deps: AiWorkerDeps, options: { fromStatus?: string; toStatus?: string } = {}): Promise<ProcessedResult> {
   const fromStatus = options.fromStatus || 'To AI';
   const toStatus = options.toStatus || 'To Human';
+  const jiraDomain = process.env.JIRA_DOMAIN || '';
   
   const tickets = await deps.jira.searchTickets(fromStatus);
   const results: ProcessedTicket[] = [];
@@ -191,18 +192,30 @@ export async function processTickets(deps: AiWorkerDeps, options: { fromStatus?:
     const research = await deps.researcher.research(query);
     
     const researchContent = [
-      '## Research Results',
+      '## 📊 Research Results',
+      '',
       research.summary,
       research.details,
       '',
-      '### Sources',
+      '### 📚 Sources',
       ...research.sources.map(s => `- [${s.title}](${s.url})`),
     ].join('\n');
 
     await deps.jira.addComment(ticket.key, researchContent);
     await deps.jira.transition(ticket.key, toStatus);
     
-    await deps.notifier.send(`Processed ticket ${ticket.key}: ${ticket.fields.summary}`);
+    // Send notification after ticket is fully processed
+    const ticketLink = `https://${jiraDomain}/browse/${ticket.key}`;
+    const message = [
+      '## ✅ Ticket Processed',
+      '',
+      `**Ticket:** ${ticket.key}`,
+      `**Summary:** ${ticket.fields.summary}`,
+      '',
+      `[🔗 View in Jira](${ticketLink})`
+    ].join('\n');
+    
+    await deps.notifier.send(message);
     
     results.push({ key: ticket.key, success: true });
   }
