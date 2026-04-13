@@ -16,17 +16,15 @@ export const processCmd = new Command()
     if (opts.mode === 'agent' && hasTaskFunction) {
       const agentTool: ResearchAgentTool = {
         invoke: async (prompt: string): Promise<string> => {
-          console.log('[AI-Worker] 🔍 Invoking web-content-harvester agent...');
+          console.log('[AI-Worker] 🔍 Calling @web-content-harvester subagent...');
           
-          // Try calling with explicit subagent_type
+          // Use @ mention to invoke the subagent directly
           const result = await (globalThis as any).task({
-            command: '/web-content-harvester',
-            description: 'Research using web-content-harvester agent',
-            prompt,
-            subagent_type: 'web-content-harvester'
+            command: `@web-content-harvester ${prompt}`,
+            description: 'Research with web-content-harvester'
           });
           
-          console.log('[AI-Worker] ✅ Agent responded, length:', result?.length || 0);
+          console.log('[AI-Worker] ✅ Subagent responded, length:', result?.length || 0);
           return result;
         }
       };
