@@ -122,9 +122,20 @@ export class TicketResearcherImpl implements TicketResearcher {
   private newsTool: NewsTool;
 
   constructor(webSearch?: WebSearchTool, codeSearch?: CodeSearchTool, newsTool?: NewsTool) {
-    this.webSearch = webSearch || { search: () => Promise.resolve({ results: [] }) };
-    this.codeSearch = codeSearch || { search: () => Promise.resolve(null) };
-    this.newsTool = newsTool || { getNews: () => Promise.resolve({ results: [] }) };
+    // Use injected tools if provided, otherwise try globalThis (opencode runtime), otherwise fallback
+    const globalAny = globalThis as any;
+    
+    this.webSearch = webSearch 
+      || (globalAny.websearch ? { search: async (q: string, n?: number) => globalAny.websearch({ query: q, numResults: n || 5 }) } : null)
+      || { search: () => Promise.resolve({ results: [] }) };
+    
+    this.codeSearch = codeSearch 
+      || (globalAny.codesearch ? { search: async (q: string, t?: number) => globalAny.codesearch({ query: q, tokensNum: t || 3000 }) } : null)
+      || { search: () => Promise.resolve(null) };
+    
+    this.newsTool = newsTool 
+      || (globalAny.newsmcp_get_news ? { getNews: async (opts?: any) => globalAny.newsmcp_get_news({ perPage: opts?.perPage || 3 }) } : null)
+      || { getNews: () => Promise.resolve({ results: [] }) };
   }
 
   async research(query: string): Promise<ResearchResult> {
