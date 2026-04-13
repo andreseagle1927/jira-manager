@@ -245,7 +245,7 @@ npm run test:watch
 
 ### Test Coverage
 
-The test suite (`tests/ai-worker.test.ts`) covers **17 tests** across these areas:
+The test suite (`tests/ai-worker.test.ts`) covers **18 tests** across these areas:
 
 #### 1. Text Extraction (`extractTextFromDoc`)
 - Extracts text from Atlassian Document Format (ADF)

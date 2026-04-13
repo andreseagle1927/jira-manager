@@ -284,7 +284,7 @@ describe('AgentResearcher', () => {
 
   it('handles agent response without URLs', async () => {
     const mockAgent = {
-      invoke: vi.fn().mockResolvedValue('Research complete. No external sources found.')
+      invoke: vi.fn().mockResolvedValue('Research complete. No external sources found. This is a detailed response about the topic with comprehensive information that exceeds the minimum length threshold.')
     };
 
     const researcher = new AgentResearcher(mockAgent);
@@ -292,5 +292,21 @@ describe('AgentResearcher', () => {
 
     expect(result.sources).toHaveLength(0);
     expect(result.summary).toContain('Research complete');
+  });
+
+  it('falls back to tool-based research when agent fails', async () => {
+    const mockAgent = {
+      invoke: vi.fn().mockRejectedValue(new Error('Agent unavailable'))
+    };
+
+    const fallbackResearcher = {
+      research: vi.fn().mockResolvedValue({ summary: 'Fallback result', details: '', sources: [] })
+    };
+
+    const researcher = new AgentResearcher(mockAgent, fallbackResearcher as any);
+    const result = await researcher.research('test query');
+
+    expect(fallbackResearcher.research).toHaveBeenCalledWith('test query');
+    expect(result.summary).toBe('Fallback result');
   });
 });

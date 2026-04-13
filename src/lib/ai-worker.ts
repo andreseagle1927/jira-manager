@@ -16,27 +16,53 @@ export interface ResearchResult {
 
 export class AgentResearcher implements TicketResearcher {
   private agent: ResearchAgentTool;
+  private fallback: TicketResearcher;
 
-  constructor(agent: ResearchAgentTool) {
+  constructor(agent: ResearchAgentTool, fallback?: TicketResearcher) {
     this.agent = agent;
+    this.fallback = fallback || new TicketResearcherImpl();
   }
 
   async research(query: string): Promise<ResearchResult> {
-    const result = await this.agent.invoke(`Research the following topic and provide detailed findings with sources:\n\n${query}`);
-    
-    const sources: { title: string; url: string }[] = [];
-    const urlMatch = result.match(/https?:\/\/[^\s]+/g);
-    if (urlMatch) {
-      urlMatch.forEach(url => {
-        sources.push({ title: url, url });
-      });
-    }
+    try {
+      console.log(`[AgentResearcher] Calling web-content-harvester agent for: ${query.slice(0, 50)}...`);
+      
+      const result = await this.agent.invoke(
+        `You are a research specialist. Thoroughly research the following topic and provide comprehensive findings with detailed information, examples, and sources.\n\nTopic: ${query}\n\nProvide a detailed response with:` +
+        `\n- Summary of findings` +
+        `\n- Detailed information` +
+        `\n- Configuration examples if applicable` +
+        `\n- Links to sources`
+      );
+      
+      if (!result || result.length < 50) {
+        console.warn('[AgentResearcher] Agent returned empty or minimal result, using fallback');
+        return this.fallback.research(query);
+      }
+      
+      const sources: { title: string; url: string }[] = [];
+      const urlMatch = result.match(/https?:\/\/[^\s<>\)]+/g);
+      if (urlMatch) {
+        const seen = new Set<string>();
+        urlMatch.forEach(url => {
+          const cleanUrl = url.replace(/[.,;:!?]+$/, '');
+          if (!seen.has(cleanUrl)) {
+            seen.add(cleanUrl);
+            sources.push({ title: cleanUrl, url: cleanUrl });
+          }
+        });
+      }
 
-    return {
-      summary: result.slice(0, 2000),
-      details: result,
-      sources,
-    };
+      const summaryEnd = result.indexOf('\n## ');
+      const summary = summaryEnd > 0 ? result.slice(0, summaryEnd).trim() : result.slice(0, 500);
+      const details = result;
+
+      return { summary, details, sources };
+    } catch (error) {
+      console.error('[AgentResearcher] Agent failed:', error);
+      console.log('[AgentResearcher] Falling back to tool-based research');
+      return this.fallback.research(query);
+    }
   }
 }
 

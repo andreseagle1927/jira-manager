@@ -18,14 +18,14 @@ export const processCmd = new Command()
         invoke: async (prompt: string): Promise<string> => {
           const result = await (globalThis as any).task({ 
             command: '', 
-            description: 'Research ticket',
+            description: 'Research ticket using web-content-harvester',
             prompt,
             subagent_type: 'web-content-harvester'
           });
           return result;
         }
       };
-      researcher = new AgentResearcher(agentTool);
+      researcher = new AgentResearcher(agentTool, new TicketResearcherImpl());
     } else if (opts.mode === 'agent' && !hasTaskFunction) {
       console.warn('Agent mode requires opencode runtime. Falling back to tools mode.');
       researcher = new TicketResearcherImpl();
